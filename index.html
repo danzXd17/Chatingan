@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team Chat Realtime</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module">
+    // Import Firebase SDK
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+    import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+
+    // 🔹 GANTI dengan konfigurasi Firebase project kamu
+    const firebaseConfig = {
+      apiKey: "ISI_API_KEY_KAMU",
+      authDomain: "ISI_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://ISI_PROJECT_ID.firebaseio.com",
+      projectId: "ISI_PROJECT_ID",
+      storageBucket: "ISI_PROJECT_ID.appspot.com",
+      messagingSenderId: "ISI_SENDER_ID",
+      appId: "ISI_APP_ID"
+    };
+
+    // Inisialisasi Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let currentUser = null;
+
+    // Login sederhana (pakai nama)
+    function login() {
+      const username = document.getElementById("username").value.trim();
+      if (username === "") {
+        alert("Masukkan nama dulu!");
+        return;
+      }
+      currentUser = username;
+      document.getElementById("loginPage").classList.add("hidden");
+      document.getElementById("chatPage").classList.remove("hidden");
+    }
+
+    // Kirim pesan ke database
+    function sendMessage() {
+      const message = document.getElementById("message").value;
+      if (message.trim() === "") return;
+
+      push(ref(db, "chat"), {
+        name: currentUser,
+        text: message,
+        time: new Date().toLocaleTimeString()
+      });
+
+      document.getElementById("message").value = "";
+    }
+
+    // Tampilkan pesan realtime
+    window.onload = () => {
+      const chatBox = document.getElementById("chat");
+      onChildAdded(ref(db, "chat"), (snapshot) => {
+        const msg = snapshot.val();
+        const div = document.createElement("div");
+
+        // Kalau pesan dari user sendiri → style beda
+        if (msg.name === currentUser) {
+          div.className = "text-right mb-2";
+          div.innerHTML = `<div class="inline-block bg-blue-500 text-white px-3 py-1 rounded-lg">
+            ${msg.text} <span class="text-xs text-gray-200">(${msg.time})</span>
+          </div>`;
+        } else {
+          div.className = "text-left mb-2";
+          div.innerHTML = `<div class="inline-block bg-gray-200 text-black px-3 py-1 rounded-lg">
+            <strong>${msg.name}</strong>: ${msg.text}
+            <span class="text-xs text-gray-500">(${msg.time})</span>
+          </div>`;
+        }
+
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      });
+    };
+
+    // Biar tombol bisa dipakai
+    window.login = login;
+    window.sendMessage = sendMessage;
+  </script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+  
+  <!-- Halaman Login -->
+  <div id="loginPage" class="bg-white shadow-xl rounded-2xl p-6 w-full max-w-sm text-center">
+    <h2 class="text-xl font-bold mb-4">Masuk ke Team Chat</h2>
+    <input id="username" type="text" placeholder="Masukkan nama" class="w-full p-2 mb-3 border rounded"/>
+    <button onclick="login()" class="bg-green-500 text-white px-4 py-2 rounded w-full">Masuk</button>
+  </div>
+
+  <!-- Halaman Chat -->
+  <div id="chatPage" class="hidden bg-white shadow-xl rounded-2xl p-6 w-full max-w-md">
+    <h2 class="text-xl font-bold mb-4 text-center">💬 Team Chat Realtime</h2>
+
+    <div id="chat" class="h-64 overflow-y-auto border p-2 mb-2 rounded bg-gray-50"></div>
+
+    <div class="flex">
+      <input id="message" type="text" placeholder="Tulis pesan..." class="flex-grow p-2 border rounded-l"/>
+      <button onclick="sendMessage()" class="bg-blue-500 text-white px-4 rounded-r">Kirim</button>
+    </div>
+  </div>
+
+</body>
+</html>
